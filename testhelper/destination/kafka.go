@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 
-	_ "github.com/lib/pq"
 	"github.com/ory/dockertest/v3"
 	dc "github.com/ory/dockertest/v3/docker"
 	"github.com/rudderlabs/rudder-server/testhelper"

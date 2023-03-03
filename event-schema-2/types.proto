@@ -1,0 +1,46 @@
+syntax = "proto3";
+package eventschema;
+import "google/protobuf/timestamp.proto";
+option go_package = ".;eventschema2";
+
+message EventSchemaKey {
+    string writeKey = 1;
+    string eventType = 2;
+    string eventIdentifier = 3;
+}
+message EventSchemaMessage {
+    string workspaceID = 1;
+    EventSchemaKey key = 2;
+    map<string, string> schema = 3;
+    google.protobuf.Timestamp observedAt = 4;
+    bytes sample = 5;
+    bytes correlationID = 6;
+}
+message EventSchemaInfo {
+    string UID = 1;
+    string workspaceID = 2;
+    EventSchemaKey key = 3;
+    map<string, string> schema = 4;
+    DayCounters counters = 5;
+    google.protobuf.Timestamp createdAt = 6;
+    google.protobuf.Timestamp lastSeen = 7;
+}
+message EventSchemaVersionInfo {
+    string UID = 1;
+    string workspaceID = 2;
+    string schemaUID = 3;
+    EventSchemaKey schemaKey = 4;
+    string hash = 5;
+    map<string, string> schema = 6;
+    DayCounters counters = 7;
+    bytes sample = 8;
+    google.protobuf.Timestamp firstSeen = 9;
+    google.protobuf.Timestamp lastSeen = 10;
+}
+message DayCounters {
+    repeated DayCounter values = 1;
+}
+message DayCounter {
+    google.protobuf.Timestamp day = 1;
+    int64 count = 2;
+}
