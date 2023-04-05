@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -149,6 +150,49 @@ func Test_Namespace_Identity(t *testing.T) {
 	}, ident)
 }
 
+func Test_Namespace_IncrementalUpdates(t *testing.T) {
+	config.Reset()
+	logger.Reset()
+
+	var (
+		namespace = "free-us-1"
+		secret    = "service-secret"
+	)
+
+	be := &backendConfigServer{
+		token: secret,
+	}
+	be.AddNamespace(t, namespace, "./testdata/sample_namespace.json")
+
+	ts := httptest.NewServer(be)
+	defer ts.Close()
+	httpSrvURL, err := url.Parse(ts.URL)
+	require.NoError(t, err)
+
+	client := &namespaceConfig{
+		logger: logger.NOP,
+
+		client:           ts.Client(),
+		configBackendURL: httpSrvURL,
+
+		namespace: namespace,
+
+		hostedServiceSecret:         secret,
+		cpRouterURL:                 cpRouterURL,
+		useIncrementalConfigUpdates: true,
+	}
+	require.NoError(t, client.SetUp())
+
+	c, err := client.Get(context.Background())
+	require.NoError(t, err)
+	require.Len(t, c, 2)
+
+	// send the request again, should not receive any update
+	c, err = client.Get(context.Background())
+	require.NoError(t, err)
+	require.Len(t, c, 3)
+}
+
 type backendConfigServer struct {
 	responses map[string]string
 
@@ -162,7 +206,19 @@ func (server *backendConfigServer) ServeHTTP(resp http.ResponseWriter, req *http
 		_, _ = resp.Write([]byte(`{"message":"Unauthorized"}`))
 		return
 	}
-
+	values := req.URL.Query()
+	for k, v := range values {
+		if k == "updatedAfter" {
+			_, err := time.Parse(updateAfterTimeFormat, v[0])
+			if err != nil {
+				resp.WriteHeader(http.StatusBadRequest)
+				_, _ = resp.Write(([]byte(`{"message":"invalid param for updatedAfter"}`)))
+			}
+			resp.WriteHeader(http.StatusOK)
+			_, _ = resp.Write([]byte(`{"dummy" : {"sources":[]}}`))
+			return
+		}
+	}
 	body, ok := server.responses[req.URL.Path]
 	if !ok {
 		resp.WriteHeader(http.StatusNotFound)

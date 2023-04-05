@@ -19,7 +19,10 @@ import (
 	"github.com/rudderlabs/rudder-server/utils/types"
 )
 
-var jsonfast = jsoniter.ConfigCompatibleWithStandardLibrary
+var (
+	jsonfast              = jsoniter.ConfigCompatibleWithStandardLibrary
+	updateAfterTimeFormat = "2006-01-02T15:04:05Z"
+)
 
 type namespaceConfig struct {
 	configEnvHandler types.ConfigEnvI
@@ -30,9 +33,12 @@ type namespaceConfig struct {
 
 	hostedServiceSecret string
 
-	namespace        string
-	configBackendURL *url.URL
-	region           string
+	namespace                   string
+	configBackendURL            *url.URL
+	region                      string
+	useIncrementalConfigUpdates bool
+	lastUpdatedAt               time.Time
+	workspacesConfig            map[string]ConfigT
 }
 
 func (nc *namespaceConfig) SetUp() (err error) {
@@ -80,10 +86,19 @@ func (nc *namespaceConfig) getFromAPI(ctx context.Context) (map[string]ConfigT, 
 	if nc.namespace == "" {
 		return config, fmt.Errorf("namespace is not configured")
 	}
+	useUpdateAfter := !(nc.lastUpdatedAt.IsZero()) && nc.useIncrementalConfigUpdates
+	fmt.Println(nc.lastUpdatedAt.IsZero())
 
 	var respBody []byte
 	u := *nc.configBackendURL
-	u.Path = fmt.Sprintf("/data-plane/v1/namespaces/%s/config", nc.namespace)
+	if useUpdateAfter {
+		u.Path = fmt.Sprintf("/data-plane/v1/namespaces/%s/config", nc.namespace)
+		values := u.Query()
+		values.Add("updatedAfter", nc.lastUpdatedAt.Format(updateAfterTimeFormat))
+		u.RawQuery = values.Encode()
+	} else {
+		u.Path = fmt.Sprintf("/data-plane/v1/namespaces/%s/config", nc.namespace)
+	}
 	operation := func() (fetchError error) {
 		nc.logger.Debugf("Fetching config from %s", u.String())
 		respBody, fetchError = nc.makeHTTPRequest(ctx, u.String())
@@ -105,6 +120,10 @@ func (nc *namespaceConfig) getFromAPI(ctx context.Context) (map[string]ConfigT, 
 		respBody = configEnvHandler.ReplaceConfigWithEnvVariables(respBody)
 	}
 
+	if !useUpdateAfter {
+		nc.workspacesConfig = make(map[string]ConfigT)
+	}
+
 	var workspacesConfig map[string]ConfigT
 	err = jsonfast.Unmarshal(respBody, &workspacesConfig)
 	if err != nil {
@@ -116,10 +135,13 @@ func (nc *namespaceConfig) getFromAPI(ctx context.Context) (map[string]ConfigT, 
 		// always set connection flags to true for hosted and multi-tenant warehouse service
 		wc.ConnectionFlags.URL = nc.cpRouterURL
 		wc.ConnectionFlags.Services = map[string]bool{"warehouse": true}
-		workspacesConfig[workspaceID] = wc
+		nc.workspacesConfig[workspaceID] = wc
+		if wc.UpdatedAt.After(nc.lastUpdatedAt) {
+			nc.lastUpdatedAt = wc.UpdatedAt
+		}
 	}
 
-	return workspacesConfig, nil
+	return nc.workspacesConfig, nil
 }
 
 func (nc *namespaceConfig) makeHTTPRequest(ctx context.Context, url string) ([]byte, error) {
