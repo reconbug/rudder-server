@@ -87,7 +87,6 @@ func (nc *namespaceConfig) getFromAPI(ctx context.Context) (map[string]ConfigT, 
 		return config, fmt.Errorf("namespace is not configured")
 	}
 	useUpdateAfter := !(nc.lastUpdatedAt.IsZero()) && nc.useIncrementalConfigUpdates
-	fmt.Println(nc.lastUpdatedAt.IsZero())
 
 	var respBody []byte
 	u := *nc.configBackendURL
