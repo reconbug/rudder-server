@@ -223,7 +223,7 @@ func (server *backendConfigServer) ServeHTTP(resp http.ResponseWriter, req *http
 			updateAtTime, err := time.Parse(updateAfterTimeFormat, v[0])
 			if err != nil {
 				resp.WriteHeader(http.StatusBadRequest)
-				_, _ = resp.Write(([]byte(`{"message":"invalid param for updatedAfter"}`)))
+				_, _ = resp.Write([]byte(`{"message":"invalid param for updatedAfter"}`))
 			}
 			server.receivedUpdateAt = append(server.receivedUpdateAt, updateAtTime)
 			newUpdateAt := updateAtTime.Add(60 * time.Second)
