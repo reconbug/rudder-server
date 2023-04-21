@@ -69,7 +69,7 @@ func (nc *namespaceConfig) SetUp() (err error) {
 	if nc.logger == nil {
 		nc.logger = logger.NewLogger().Child("backend-config")
 	}
-
+	nc.workspacesConfig = make(map[string]ConfigT)
 	nc.logger.Infof("Fetching config for namespace %s", nc.namespace)
 
 	return nil
@@ -82,9 +82,9 @@ func (nc *namespaceConfig) Get(ctx context.Context) (map[string]ConfigT, error) 
 
 // getFromApi gets the workspace config from api
 func (nc *namespaceConfig) getFromAPI(ctx context.Context) (map[string]ConfigT, error) {
-	config := make(map[string]ConfigT)
+	configOnError := make(map[string]ConfigT)
 	if nc.namespace == "" {
-		return config, fmt.Errorf("namespace is not configured")
+		return configOnError, fmt.Errorf("namespace is not configured")
 	}
 	useUpdateAfter := nc.useIncrementalConfigUpdates && !nc.lastUpdatedAt.IsZero()
 
@@ -110,7 +110,7 @@ func (nc *namespaceConfig) getFromAPI(ctx context.Context) (map[string]ConfigT, 
 		if ctx.Err() == nil {
 			nc.logger.Errorf("Error sending request to the server: %v", err)
 		}
-		return config, err
+		return configOnError, err
 	}
 	configEnvHandler := nc.configEnvHandler
 	if configEnvReplacementEnabled && configEnvHandler != nil {
@@ -121,10 +121,10 @@ func (nc *namespaceConfig) getFromAPI(ctx context.Context) (map[string]ConfigT, 
 	err = jsonfast.Unmarshal(respBody, &workspacesConfig)
 	if err != nil {
 		nc.logger.Errorf("Error while parsing request: %v", err)
-		return config, err
+		return configOnError, err
 	}
 
-	if !useUpdateAfter {
+	if !nc.useIncrementalConfigUpdates {
 		nc.workspacesConfig = make(map[string]ConfigT)
 	}
 
