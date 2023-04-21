@@ -86,17 +86,15 @@ func (nc *namespaceConfig) getFromAPI(ctx context.Context) (map[string]ConfigT, 
 	if nc.namespace == "" {
 		return config, fmt.Errorf("namespace is not configured")
 	}
-	useUpdateAfter := !(nc.lastUpdatedAt.IsZero()) && nc.useIncrementalConfigUpdates
+	useUpdateAfter := nc.useIncrementalConfigUpdates && !nc.lastUpdatedAt.IsZero()
 
 	var respBody []byte
 	u := *nc.configBackendURL
+	u.Path = fmt.Sprintf("/data-plane/v1/namespaces/%s/config", nc.namespace)
 	if useUpdateAfter {
-		u.Path = fmt.Sprintf("/data-plane/v1/namespaces/%s/config", nc.namespace)
 		values := u.Query()
 		values.Add("updatedAfter", nc.lastUpdatedAt.Format(updateAfterTimeFormat))
 		u.RawQuery = values.Encode()
-	} else {
-		u.Path = fmt.Sprintf("/data-plane/v1/namespaces/%s/config", nc.namespace)
 	}
 	operation := func() (fetchError error) {
 		nc.logger.Debugf("Fetching config from %s", u.String())
@@ -119,15 +117,15 @@ func (nc *namespaceConfig) getFromAPI(ctx context.Context) (map[string]ConfigT, 
 		respBody = configEnvHandler.ReplaceConfigWithEnvVariables(respBody)
 	}
 
-	if !useUpdateAfter {
-		nc.workspacesConfig = make(map[string]ConfigT)
-	}
-
 	var workspacesConfig map[string]ConfigT
 	err = jsonfast.Unmarshal(respBody, &workspacesConfig)
 	if err != nil {
 		nc.logger.Errorf("Error while parsing request: %v", err)
 		return config, err
+	}
+
+	if !useUpdateAfter {
+		nc.workspacesConfig = make(map[string]ConfigT)
 	}
 
 	for workspaceID, wc := range workspacesConfig {
