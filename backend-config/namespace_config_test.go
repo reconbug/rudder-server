@@ -227,7 +227,7 @@ func (server *backendConfigServer) ServeHTTP(resp http.ResponseWriter, req *http
 			}
 			server.receivedUpdateAt = append(server.receivedUpdateAt, updateAtTime)
 			newUpdateAt := updateAtTime.Add(60 * time.Second)
-			response := fmt.Sprintf(`{"dummy":{"updatedAt":"%s", "sources":[]}}`, newUpdateAt.Format((updateAfterTimeFormat)))
+			response := fmt.Sprintf(`{"dummy":{"updatedAt":%q, "sources":[]}}`, newUpdateAt.Format((updateAfterTimeFormat)))
 			resp.WriteHeader(http.StatusOK)
 			_, _ = resp.Write([]byte(response))
 			return
