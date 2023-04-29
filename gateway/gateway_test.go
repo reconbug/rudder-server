@@ -354,7 +354,7 @@ var _ = Describe("Gateway", func() {
 			Expect(err).To(BeNil())
 		})
 
-		assertJobMetadata := func(job *jobsdb.JobT, batchLength int) {
+		assertJobMetadata := func(job *jobsdb.JobT) {
 			Expect(misc.IsValidUUID(job.UUID.String())).To(Equal(true))
 
 			var paramsMap, expectedParamsMap map[string]interface{}
@@ -375,7 +375,7 @@ var _ = Describe("Gateway", func() {
 			Expect(time.Parse(misc.RFC3339Milli, receivedAt.String())).To(BeTemporally("~", time.Now(), 100*time.Millisecond))
 			Expect(writeKey.String()).To(Equal(WriteKeyEnabled))
 			Expect(requestIP.String()).To(Equal(TestRemoteAddress))
-			Expect(batch.Array()).To(HaveLen(batchLength))
+			Expect(batch.Array()).To(HaveLen(1)) // each batch split into multiple batches of 1 event
 		}
 
 		createValidBody := func(customProperty, customValue string) []byte {
@@ -436,7 +436,7 @@ var _ = Describe("Gateway", func() {
 							) (map[uuid.UUID]string, error) {
 								for _, job := range jobs {
 									// each call should be included in a separate batch, with a separate batch_id
-									assertJobMetadata(job, 1)
+									assertJobMetadata(job)
 
 									responseData := []byte(job.EventPayload)
 									payload := gjson.GetBytes(responseData, "batch.0")
@@ -954,7 +954,7 @@ var _ = Describe("Gateway", func() {
 			}
 			jobData, err := gateway.getJobDataFromRequest(req)
 			Expect(errors.New(response.InvalidJSON)).To(Equal(err))
-			Expect(jobData.job).To(BeNil())
+			Expect(jobData.jobs).To(BeNil())
 		})
 
 		It("drops non-identifiable requests if userID and anonID are not present in the request payload", func() {
@@ -967,7 +967,7 @@ var _ = Describe("Gateway", func() {
 			}
 			jobData, err := gateway.getJobDataFromRequest(req)
 			Expect(err).To(Equal(errors.New(response.NonIdentifiableRequest)))
-			Expect(jobData.job).To(BeNil())
+			Expect(jobData.jobs).To(BeNil())
 		})
 
 		It("accepts events with non-string type anonymousId and/or userId", func() {

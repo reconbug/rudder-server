@@ -447,10 +447,18 @@ func (gateway *HandleT) userWebRequestWorkerProcess(userWebRequestWorker *userWe
 				}
 				continue
 			}
-			jobList = append(jobList, jobData.job)
-			jobIDReqMap[jobData.job.UUID] = req
-			jobSourceTagMap[jobData.job.UUID] = sourceTag
-			eventBatchesToRecord = append(eventBatchesToRecord, sourceDebugger{data: jobData.job.EventPayload, writeKey: writeKey})
+			jobList = append(jobList, jobData.jobs...)
+			for _, job := range jobData.jobs {
+				jobIDReqMap[job.UUID] = req
+				jobSourceTagMap[job.UUID] = sourceTag
+				eventBatchesToRecord = append(
+					eventBatchesToRecord,
+					sourceDebugger{
+						data:     job.EventPayload,
+						writeKey: writeKey,
+					},
+				)
+			}
 		}
 
 		errorMessagesMap := make(map[uuid.UUID]string)
@@ -462,6 +470,7 @@ func (gateway *HandleT) userWebRequestWorkerProcess(userWebRequestWorker *userWe
 			errorMessagesMap = <-userWebRequestWorker.reponseQ
 		}
 
+		reqOKMap := make(map[*webRequestT]string)
 		for _, job := range jobList {
 			err, found := errorMessagesMap[job.UUID]
 			sourceTag := jobSourceTagMap[job.UUID]
@@ -470,7 +479,12 @@ func (gateway *HandleT) userWebRequestWorkerProcess(userWebRequestWorker *userWe
 			} else {
 				sourceStats[sourceTag].RequestEventsSucceeded(job.EventCount)
 			}
-			jobIDReqMap[job.UUID].done <- err
+			if reqOKMap[jobIDReqMap[job.UUID]] == "" {
+				reqOKMap[jobIDReqMap[job.UUID]] = err
+			}
+		}
+		for req, err := range reqOKMap {
+			req.done <- err
 		}
 		// Sending events to config backend
 		for _, eventBatch := range eventBatchesToRecord {
@@ -492,7 +506,7 @@ var (
 )
 
 type jobFromReq struct {
-	job       *jobsdb.JobT
+	jobs      []*jobsdb.JobT
 	numEvents int
 	version   string
 }
@@ -551,10 +565,10 @@ func (gateway *HandleT) getJobDataFromRequest(req *webRequestT) (jobData *jobFro
 
 	var (
 		// map to hold modified/filtered events of the batch
-		out []map[string]interface{}
+		out = make(map[string][]map[string]interface{})
 
+		marshalledParams []byte
 		// values retrieved from first event in batch
-		firstUserID                                 string
 		firstSourcesJobRunID, firstSourcesTaskRunID string
 
 		// facts about the batch populated as we iterate over events
@@ -582,7 +596,6 @@ func (gateway *HandleT) getJobDataFromRequest(req *webRequestT) (jobData *jobFro
 		}
 
 		if idx == 0 {
-			firstUserID = buildUserID(userIDHeader, anonIDFromReq, userIDFromReq)
 			firstSourcesJobRunID, _ = misc.MapLookup(
 				toSet,
 				"context",
@@ -635,7 +648,8 @@ func (gateway *HandleT) getJobDataFromRequest(req *webRequestT) (jobData *jobFro
 			containsAudienceList = true
 		}
 
-		out = append(out, toSet)
+		userID := buildUserID(userIDHeader, anonIDFromReq, userIDFromReq)
+		out[userID] = append(out[userID], toSet)
 	}
 
 	if len(out) == 0 && suppressed {
@@ -648,19 +662,12 @@ func (gateway *HandleT) getJobDataFromRequest(req *webRequestT) (jobData *jobFro
 		return
 	}
 
-	body, _ = sjson.SetBytes(body, "batch", out)
-	body, _ = sjson.SetBytes(body, "requestIP", ipAddr)
-	body, _ = sjson.SetBytes(body, "writeKey", writeKey)
-	body, _ = sjson.SetBytes(body, "receivedAt", time.Now().Format(misc.RFC3339Milli))
-
-	id := uuid.New()
-
 	params := map[string]interface{}{
 		"source_id":          sourceID,
 		"source_job_run_id":  firstSourcesJobRunID,
 		"source_task_run_id": firstSourcesTaskRunID,
 	}
-	marshalledParams, err := json.Marshal(params)
+	marshalledParams, err = json.Marshal(params)
 	if err != nil {
 		gateway.logger.Errorf(
 			"[Gateway] Failed to marshal parameters map. Parameters: %+v",
@@ -670,17 +677,42 @@ func (gateway *HandleT) getJobDataFromRequest(req *webRequestT) (jobData *jobFro
 			`{"error": "rudder-server gateway failed to marshal params"}`,
 		)
 	}
-	err = nil
-	job := &jobsdb.JobT{
-		UUID:         id,
-		UserID:       firstUserID,
-		Parameters:   marshalledParams,
-		CustomVal:    CustomVal,
-		EventPayload: body,
-		EventCount:   jobData.numEvents,
-		WorkspaceId:  workspaceId,
+	jobs := make([]*jobsdb.JobT, 0)
+	for userID, events := range out {
+		for _, event := range events {
+			var payload json.RawMessage
+			{
+				type SingularEventBatch struct {
+					Batch      []types.SingularEventT `json:"batch"`
+					RequestIP  string                 `json:"requestIP"`
+					WriteKey   string                 `json:"writeKey"`
+					ReceivedAt string                 `json:"receivedAt"`
+				}
+				singularEventBatch := SingularEventBatch{
+					Batch:      []types.SingularEventT{event},
+					RequestIP:  ipAddr,
+					WriteKey:   writeKey,
+					ReceivedAt: time.Now().Format(misc.RFC3339Milli),
+				}
+				payload, err = json.Marshal(singularEventBatch)
+				if err != nil {
+					err = errors.New(response.InvalidJSON)
+					return
+				}
+			}
+
+			jobs = append(jobs, &jobsdb.JobT{
+				UUID:         uuid.New(),
+				UserID:       userID,
+				Parameters:   marshalledParams,
+				CustomVal:    CustomVal,
+				EventPayload: payload,
+				EventCount:   1,
+				WorkspaceId:  workspaceId,
+			})
+		}
 	}
-	jobData.job = job
+	jobData.jobs = jobs
 	return
 }
 
