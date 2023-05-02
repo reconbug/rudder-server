@@ -198,16 +198,21 @@ func Test_Namespace_IncrementalUpdates(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, c, 3)
 
-	require.Len(t, be.receivedUpdateAt, 2)
+	// send the request again, this time, the workspace would be deleted
+	c, err = client.Get(context.Background())
+	require.NoError(t, err)
+	require.Len(t, c, 2)
+
 	firstUpdateTime, _ := time.Parse(updateAfterTimeFormat, "2022-07-20T10:00:00.000Z")
 	require.Equal(t, be.receivedUpdateAt[0], firstUpdateTime, updateAfterTimeFormat)
 	require.Equal(t, be.receivedUpdateAt[1], firstUpdateTime.Add(60*time.Second), updateAfterTimeFormat)
 }
 
 type backendConfigServer struct {
-	responses        map[string]string
-	receivedUpdateAt []time.Time
-	token            string
+	responses              map[string]string
+	receivedUpdateAt       []time.Time
+	numIncrementalRequests int
+	token                  string
 }
 
 func (server *backendConfigServer) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
@@ -220,6 +225,7 @@ func (server *backendConfigServer) ServeHTTP(resp http.ResponseWriter, req *http
 	values := req.URL.Query()
 	for k, v := range values {
 		if k == "updatedAfter" {
+			server.numIncrementalRequests = server.numIncrementalRequests + 1
 			updateAtTime, err := time.Parse(updateAfterTimeFormat, v[0])
 			if err != nil {
 				resp.WriteHeader(http.StatusBadRequest)
@@ -227,7 +233,12 @@ func (server *backendConfigServer) ServeHTTP(resp http.ResponseWriter, req *http
 			}
 			server.receivedUpdateAt = append(server.receivedUpdateAt, updateAtTime)
 			newUpdateAt := updateAtTime.Add(60 * time.Second)
-			response := fmt.Sprintf(`{"dummy":{"updatedAt":%q, "sources":[]}}`, newUpdateAt.Format((updateAfterTimeFormat)))
+			var response string
+			if server.numIncrementalRequests < 3 {
+				response = fmt.Sprintf(`{"dummy":{"updatedAt":%q, "sources":[{}]}}`, newUpdateAt.Format((updateAfterTimeFormat)))
+			} else {
+				response = `{"dummy": null}`
+			}
 			resp.WriteHeader(http.StatusOK)
 			_, _ = resp.Write([]byte(response))
 			return

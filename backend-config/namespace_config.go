@@ -124,11 +124,16 @@ func (nc *namespaceConfig) getFromAPI(ctx context.Context) (map[string]ConfigT, 
 		return configOnError, err
 	}
 
+	var deletedWorkspaces []string
+
 	if !nc.useIncrementalConfigUpdates {
 		nc.workspacesConfig = make(map[string]ConfigT)
 	}
 
 	for workspaceID, wc := range workspacesConfig {
+		if len(wc.Sources) == 0 {
+			deletedWorkspaces = append(deletedWorkspaces, workspaceID)
+		}
 		// always set connection flags to true for hosted and multi-tenant warehouse service
 		wc.ConnectionFlags.URL = nc.cpRouterURL
 		wc.ConnectionFlags.Services = map[string]bool{"warehouse": true}
@@ -136,6 +141,9 @@ func (nc *namespaceConfig) getFromAPI(ctx context.Context) (map[string]ConfigT, 
 		if wc.UpdatedAt.After(nc.lastUpdatedAt) {
 			nc.lastUpdatedAt = wc.UpdatedAt
 		}
+	}
+	for _, workspaceID := range deletedWorkspaces {
+		delete(nc.workspacesConfig, workspaceID)
 	}
 
 	return nc.workspacesConfig, nil
