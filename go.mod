@@ -51,8 +51,6 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/gomodule/redigo v1.8.9
 	github.com/google/uuid v1.3.0
-	github.com/gorilla/handlers v1.5.1
-	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/go-retryablehttp v0.7.2
 	github.com/hashicorp/golang-lru/v2 v2.0.2
 	github.com/hashicorp/yamux v0.1.1
@@ -104,6 +102,8 @@ require (
 	google.golang.org/grpc v1.54.0
 	google.golang.org/protobuf v1.30.0
 )
+
+require github.com/go-chi/chi v1.5.4
 
 require (
 	cloud.google.com/go v0.110.0 // indirect
@@ -164,7 +164,6 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/dvsekhvalnov/jose2go v1.5.0 // indirect
 	github.com/fatih/color v1.13.0 // indirect
-	github.com/felixge/httpsnoop v1.0.1 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.5+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.1 // indirect
