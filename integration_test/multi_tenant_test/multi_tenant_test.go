@@ -21,7 +21,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"github.com/ory/dockertest/v3"
 	"github.com/stretchr/testify/require"
 
