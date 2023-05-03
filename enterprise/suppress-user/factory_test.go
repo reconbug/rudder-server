@@ -82,11 +82,6 @@ func TestSuppressionSetup(t *testing.T) {
 func httpHandler(t *testing.T) http.Handler {
 	t.Helper()
 	srvMux := chi.NewMux()
-	srvMux.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			next.ServeHTTP(w, req)
-		})
-	})
 
 	srvMux.Get("/workspaceConfig", getSingleTenantWorkspaceConfig)
 	srvMux.Get("/full-export", func(w http.ResponseWriter, r *http.Request) { http.ServeFile(w, r, "testdata/full-export") })

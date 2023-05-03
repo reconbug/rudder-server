@@ -320,7 +320,6 @@ func TestProxyRequest(t *testing.T) {
 
 // A kind of mock for transformer proxy endpoint in transformer
 func mockProxyHandler(timeout time.Duration, code int, response string) *chi.Mux {
-	// srvMux := mux.NewRouter()
 	srvMux := chi.NewRouter()
 	srvMux.HandleFunc("/v0/destinations/{destName}/proxy", func(w http.ResponseWriter, req *http.Request) {
 		dName := chi.URLParam(req, "destName")

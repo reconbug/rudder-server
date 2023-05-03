@@ -645,8 +645,6 @@ func (s *cpResponseProducer) GetNext() cpResponseParams {
 func (cpRespProducer *cpResponseProducer) mockCpRequests() *chi.Mux {
 	srvMux := chi.NewMux()
 	srvMux.HandleFunc("/destination/workspaces/{workspaceId}/accounts/{accountId}/token", func(w http.ResponseWriter, req *http.Request) {
-		// vars := mux.Vars(req)
-
 		// iterating over request parameters
 		for _, reqParam := range []string{"workspaceId", "accountId"} {
 			param := chi.URLParam(req, reqParam)

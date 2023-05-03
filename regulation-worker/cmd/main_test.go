@@ -395,33 +395,9 @@ func verifyBatchDeletion(t *testing.T, minioConfig map[string]interface{}) {
 	require.Equal(t, string(goldenFile), string(downloadedFile), "downloaded file different than golden file")
 }
 
-// func handler(t *testing.T, minioConfig map[string]interface{}, redisAddress string) http.Handler {
-// 	t.Helper()
-// 	srvMux := mux.NewRouter()
-// 	srvMux.HandleFunc("/dataplane/workspaces/{workspace_id}/regulations/workerJobs", getSingleTenantJob).Methods(http.MethodGet)
-// 	srvMux.HandleFunc("/dataplane/workspaces/{workspace_id}/regulations/workerJobs/{job_id}", updateSingleTenantJobStatus).Methods(http.MethodPatch)
-// 	srvMux.HandleFunc("/dataplane/namespaces/{workspace_id}/regulations/workerJobs", getMultiTenantJob).Methods(http.MethodGet)
-// 	srvMux.HandleFunc("/dataplane/namespaces/{workspace_id}/regulations/workerJobs/{job_id}", updateMultiTenantJobStatus).Methods(http.MethodPatch)
-// 	srvMux.HandleFunc("/workspaceConfig", getSingleTenantWorkspaceConfig(minioConfig, redisAddress)).Methods(http.MethodGet)
-// 	srvMux.HandleFunc("/data-plane/v1/namespaces/{namespace_id}/config", getMultiTenantNamespaceConfig(minioConfig, redisAddress)).Methods(http.MethodGet)
-
-// 	srvMux.Use(func(next http.Handler) http.Handler {
-// 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-// 			next.ServeHTTP(w, req)
-// 		})
-// 	})
-
-// 	return srvMux
-// }
-
 func handler(t *testing.T, minioConfig map[string]interface{}, redisAddress string) http.Handler {
 	t.Helper()
 	srvMux := chi.NewRouter()
-	srvMux.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			next.ServeHTTP(w, req)
-		})
-	})
 
 	srvMux.Get("/dataplane/workspaces/{workspace_id}/regulations/workerJobs", getSingleTenantJob)
 	srvMux.Patch("/dataplane/workspaces/{workspace_id}/regulations/workerJobs/{job_id}", updateSingleTenantJobStatus)

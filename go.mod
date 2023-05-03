@@ -43,6 +43,7 @@ require (
 	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/dgraph-io/badger/v3 v3.2103.5
 	github.com/docker/docker v23.0.4+incompatible
+	github.com/go-chi/chi v1.5.4
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-redis/redis/v8 v8.11.5
@@ -102,8 +103,6 @@ require (
 	google.golang.org/grpc v1.54.0
 	google.golang.org/protobuf v1.30.0
 )
-
-require github.com/go-chi/chi v1.5.4
 
 require (
 	cloud.google.com/go v0.110.0 // indirect

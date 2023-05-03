@@ -1262,19 +1262,22 @@ func (gateway *HandleT) StartWebHandler(ctx context.Context) error {
 	internalMux.Post("/v1/extract", gateway.webExtractHandler)
 
 	srvMux.Route("/v1", func(r chi.Router) {
+		r.Post("/alias", gateway.webAliasHandler)
+		r.Post("/audiencelist", gateway.webAudienceListHandler)
 		r.Post("/batch", gateway.webBatchHandler)
+		r.Post("/group", gateway.webGroupHandler)
 		r.Post("/identify", gateway.webIdentifyHandler)
-		r.Post("/track", gateway.webTrackHandler)
+		r.Post("/import", gateway.webImportHandler)
+		r.Post("/merge", gateway.webMergeHandler)
 		r.Post("/page", gateway.webPageHandler)
 		r.Post("/screen", gateway.webScreenHandler)
-		r.Post("/alias", gateway.webAliasHandler)
-		r.Post("/merge", gateway.webMergeHandler)
-		r.Post("/group", gateway.webGroupHandler)
-		r.Post("/import", gateway.webImportHandler)
-		r.Post("/audiencelist", gateway.webAudienceListHandler)
+		r.Post("/track", gateway.webTrackHandler)
 		r.Post("/webhook", gateway.webhookHandler.RequestHandler)
-		r.Get("/warehouse", warehouseHandler)
 		r.Post("/warehouse", warehouseHandler)
+		r.Post("/warehouse/pending-events", gateway.whProxy.ServeHTTP)
+
+		// r.Get("/webhook", gateway.webhookHandler.RequestHandler)
+		r.Get("/warehouse", warehouseHandler)
 	})
 
 	srvMux.Get("/health", WithContentType("application/json; charset=utf-8", app.LivenessHandler(gateway.jobsDB)))
@@ -1298,7 +1301,6 @@ func (gateway *HandleT) StartWebHandler(ctx context.Context) error {
 		srvMux.Get("/schemas/event-models/json-schemas", WithContentType("application/json; charset=utf-8", gateway.eventSchemaWebHandler(gateway.eventSchemaHandler.GetJsonSchemas)))
 	}
 
-	srvMux.Post("/v1/warehouse/pending-events", gateway.whProxy.ServeHTTP)
 	// rudder-sources new APIs
 	rsourcesHandler := rsources_http.NewHandler(
 		gateway.rsourcesService,
