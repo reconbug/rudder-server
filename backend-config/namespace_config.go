@@ -117,33 +117,33 @@ func (nc *namespaceConfig) getFromAPI(ctx context.Context) (map[string]ConfigT, 
 		respBody = configEnvHandler.ReplaceConfigWithEnvVariables(respBody)
 	}
 
-	var workspacesConfig map[string]ConfigT
+	var workspacesConfig map[string]*ConfigT
 	err = jsonfast.Unmarshal(respBody, &workspacesConfig)
 	if err != nil {
 		nc.logger.Errorf("Error while parsing request: %v", err)
 		return configOnError, err
 	}
 
-	var deletedWorkspaces []string
-
 	if !nc.useIncrementalConfigUpdates {
 		nc.workspacesConfig = make(map[string]ConfigT)
 	}
 
 	for workspaceID, wc := range workspacesConfig {
-		if len(wc.Sources) == 0 {
-			deletedWorkspaces = append(deletedWorkspaces, workspaceID)
+		if wc == nil {
+			continue // no need to update, nothing has changed
 		}
 		// always set connection flags to true for hosted and multi-tenant warehouse service
 		wc.ConnectionFlags.URL = nc.cpRouterURL
 		wc.ConnectionFlags.Services = map[string]bool{"warehouse": true}
-		nc.workspacesConfig[workspaceID] = wc
+		nc.workspacesConfig[workspaceID] = *wc
 		if wc.UpdatedAt.After(nc.lastUpdatedAt) {
 			nc.lastUpdatedAt = wc.UpdatedAt
 		}
 	}
-	for _, workspaceID := range deletedWorkspaces {
-		delete(nc.workspacesConfig, workspaceID)
+	for workspaceID := range workspacesConfig {
+		if _, ok := nc.workspacesConfig[workspaceID]; !ok {
+			delete(nc.workspacesConfig, workspaceID)
+		}
 	}
 
 	return nc.workspacesConfig, nil
