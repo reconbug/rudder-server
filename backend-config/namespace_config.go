@@ -140,8 +140,8 @@ func (nc *namespaceConfig) getFromAPI(ctx context.Context) (map[string]ConfigT, 
 			nc.lastUpdatedAt = wc.UpdatedAt
 		}
 	}
-	for workspaceID := range workspacesConfig {
-		if _, ok := nc.workspacesConfig[workspaceID]; !ok {
+	for workspaceID := range nc.workspacesConfig {
+		if _, ok := workspacesConfig[workspaceID]; !ok {
 			delete(nc.workspacesConfig, workspaceID)
 		}
 	}
