@@ -134,9 +134,9 @@ type Deltalake struct {
 	LoadTableStrategy      string
 	EnablePartitionPruning bool
 	SlowQueryThreshold     time.Duration
-	Retries                int
-	RetryMaxWait           time.Duration
+	MaxRetries             int
 	RetryMinWait           time.Duration
+	RetryMaxWait           time.Duration
 }
 
 func New() *Deltalake {
@@ -150,9 +150,9 @@ func WithConfig(h *Deltalake, config *config.Config) {
 	h.LoadTableStrategy = config.GetString("Warehouse.deltalake.loadTableStrategy", mergeMode)
 	h.EnablePartitionPruning = config.GetBool("Warehouse.deltalake.enablePartitionPruning", true)
 	h.SlowQueryThreshold = config.GetDuration("Warehouse.deltalake.slowQueryThreshold", 5, time.Minute)
-	h.Retries = config.GetInt("Warehouse.deltalake.retries", 10)
-	h.RetryMaxWait = config.GetDuration("Warehouse.deltalake.retryMaxWait", 1, time.Second)
-	h.RetryMinWait = config.GetDuration("Warehouse.deltalake.retryMinWait", 300, time.Second)
+	h.MaxRetries = config.GetInt("Warehouse.deltalake.maxRetries", 10)
+	h.RetryMinWait = config.GetDuration("Warehouse.deltalake.retryMinWait", 1, time.Second)
+	h.RetryMaxWait = config.GetDuration("Warehouse.deltalake.retryMaxWait", 300, time.Second)
 }
 
 // Setup sets up the warehouse
@@ -197,7 +197,7 @@ func (d *Deltalake) connect() (*sqlmiddleware.DB, error) {
 			warehouseutils.GetConfigValue(catalog, d.Warehouse),
 			"",
 		),
-		dbsql.WithRetries(d.Retries, d.RetryMaxWait, d.RetryMinWait),
+		dbsql.WithRetries(d.MaxRetries, d.RetryMinWait, d.RetryMaxWait),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("creating connector: %w", err)
