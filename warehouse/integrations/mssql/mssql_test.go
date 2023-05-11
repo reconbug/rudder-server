@@ -61,10 +61,10 @@ func TestIntegration(t *testing.T) {
 	sourcesDestinationID := warehouseutils.RandHex()
 	sourcesWriteKey := warehouseutils.RandHex()
 
-	provider := warehouseutils.MSSQL
+	destType := warehouseutils.MSSQL
 
-	namespace := testhelper.RandSchema(provider)
-	sourcesNamespace := testhelper.RandSchema(provider)
+	namespace := testhelper.RandSchema(destType)
+	sourcesNamespace := testhelper.RandSchema(destType)
 
 	host := "localhost"
 	database := "master"
@@ -74,7 +74,9 @@ func TestIntegration(t *testing.T) {
 	bucketName := "testbucket"
 	accessKeyID := "MYACCESSKEY"
 	secretAccessKey := "MYSECRETKEY"
-	endPoint := fmt.Sprintf("localhost:%d", minioPort)
+
+	minioEndpoint := fmt.Sprintf("localhost:%d", minioPort)
+	transformerEndpoint := fmt.Sprintf("http://localhost:%d", transformerPort)
 
 	templateConfigurations := map[string]any{
 		"workspaceID":          workspaceID,
@@ -94,7 +96,7 @@ func TestIntegration(t *testing.T) {
 		"bucketName":           bucketName,
 		"accessKeyID":          accessKeyID,
 		"secretAccessKey":      secretAccessKey,
-		"endPoint":             endPoint,
+		"endPoint":             minioEndpoint,
 	}
 	workspaceConfigPath := workspaceConfig.CreateTempFile(t, "testdata/template.json", templateConfigurations)
 
@@ -112,16 +114,16 @@ func TestIntegration(t *testing.T) {
 	t.Setenv("WAREHOUSE_JOBS_DB_PASSWORD", "password")
 	t.Setenv("WAREHOUSE_JOBS_DB_SSL_MODE", "disable")
 	t.Setenv("WAREHOUSE_JOBS_DB_PORT", strconv.Itoa(jobsDBPort))
-	t.Setenv("MINIO_ACCESS_KEY_ID", "MYACCESSKEY")
-	t.Setenv("MINIO_SECRET_ACCESS_KEY", "MYSECRETKEY")
-	t.Setenv("MINIO_MINIO_ENDPOINT", fmt.Sprintf("localhost:%d", minioPort))
+	t.Setenv("MINIO_ACCESS_KEY_ID", accessKeyID)
+	t.Setenv("MINIO_SECRET_ACCESS_KEY", secretAccessKey)
+	t.Setenv("MINIO_MINIO_ENDPOINT", minioEndpoint)
 	t.Setenv("MINIO_SSL", "false")
 	t.Setenv("GO_ENV", "production")
 	t.Setenv("LOG_LEVEL", "INFO")
 	t.Setenv("INSTANCE_ID", "1")
 	t.Setenv("ALERT_PROVIDER", "pagerduty")
 	t.Setenv("CONFIG_PATH", "../../../config/config.yaml")
-	t.Setenv("DEST_TRANSFORM_URL", fmt.Sprintf("http://localhost:%d", transformerPort))
+	t.Setenv("DEST_TRANSFORM_URL", transformerEndpoint)
 	t.Setenv("RSERVER_WAREHOUSE_MSSQL_MAX_PARALLEL_LOADS", "8")
 	t.Setenv("RSERVER_WAREHOUSE_WAREHOUSE_SYNC_FREQ_IGNORE", "true")
 	t.Setenv("RSERVER_WAREHOUSE_UPLOAD_FREQ_IN_S", "10")
@@ -175,13 +177,12 @@ func TestIntegration(t *testing.T) {
 			schema                string
 			sourceID              string
 			destinationID         string
-			eventsMap             testhelper.EventsCountMap
+			tables                []string
 			stagingFilesEventsMap testhelper.EventsCountMap
 			loadFilesEventsMap    testhelper.EventsCountMap
 			tableUploadsEventsMap testhelper.EventsCountMap
 			warehouseEventsMap    testhelper.EventsCountMap
 			asyncJob              bool
-			tables                []string
 		}{
 			{
 				name:          "Upload Job",
@@ -198,7 +199,6 @@ func TestIntegration(t *testing.T) {
 				tables:                []string{"tracks", "google_sheet"},
 				sourceID:              sourcesSourceID,
 				destinationID:         sourcesDestinationID,
-				eventsMap:             testhelper.SourcesSendEventsMap(),
 				stagingFilesEventsMap: testhelper.SourcesStagingFilesEventsMap(),
 				loadFilesEventsMap:    testhelper.SourcesLoadFilesEventsMap(),
 				tableUploadsEventsMap: testhelper.SourcesTableUploadsEventsMap(),
@@ -213,45 +213,83 @@ func TestIntegration(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
-				ts := testhelper.WareHouseTest{
-					Schema:                tc.schema,
+				sqlClient := &client.Client{
+					SQL:  db,
+					Type: client.SQLClient,
+				}
+
+				conf := map[string]interface{}{
+					"bucketProvider":   "MINIO",
+					"bucketName":       bucketName,
+					"accessKeyID":      accessKeyID,
+					"secretAccessKey":  secretAccessKey,
+					"useSSL":           false,
+					"endPoint":         minioEndpoint,
+					"useRudderStorage": false,
+				}
+
+				t.Log("verifying test case 1")
+				ts1 := testhelper.TestConfig{
 					WriteKey:              tc.writeKey,
+					Schema:                tc.schema,
+					Tables:                tc.tables,
 					SourceID:              tc.sourceID,
 					DestinationID:         tc.destinationID,
-					Tables:                tc.tables,
-					EventsMap:             tc.eventsMap,
 					StagingFilesEventsMap: tc.stagingFilesEventsMap,
 					LoadFilesEventsMap:    tc.loadFilesEventsMap,
 					TableUploadsEventsMap: tc.tableUploadsEventsMap,
 					WarehouseEventsMap:    tc.warehouseEventsMap,
-					AsyncJob:              tc.asyncJob,
-					UserID:                testhelper.GetUserId(provider),
-					Provider:              provider,
+					Config:                conf,
+					WorkspaceID:           workspaceID,
+					DestinationType:       destType,
 					JobsDB:                jobsDB,
+					HTTPPort:              httpPort,
+					Client:                sqlClient,
 					JobRunID:              misc.FastUUID().String(),
 					TaskRunID:             misc.FastUUID().String(),
-					Client: &client.Client{
-						SQL:  db,
-						Type: client.SQLClient,
-					},
-					HTTPPort:    httpPort,
-					WorkspaceID: workspaceID,
+					EventTemplateCountMap: testhelper.DefaultEventsCountMap,
+					UserID:                testhelper.GetUserId(destType),
 				}
-				ts.VerifyEvents(t)
+				if tc.asyncJob {
+					ts1.EventTemplateCountMap = testhelper.DefaultSourcesEventsCountMap
+				}
+				ts1.VerifyEvents(t)
 
-				if !tc.asyncJob {
-					ts.UserID = testhelper.GetUserId(provider)
+				t.Log("verifying test case 2")
+				ts2 := testhelper.TestConfig{
+					WriteKey:              tc.writeKey,
+					Schema:                tc.schema,
+					Tables:                tc.tables,
+					SourceID:              tc.sourceID,
+					DestinationID:         tc.destinationID,
+					AsyncJob:              tc.asyncJob,
+					StagingFilesEventsMap: tc.stagingFilesEventsMap,
+					LoadFilesEventsMap:    tc.loadFilesEventsMap,
+					TableUploadsEventsMap: tc.tableUploadsEventsMap,
+					WarehouseEventsMap:    tc.warehouseEventsMap,
+					Config:                conf,
+					WorkspaceID:           workspaceID,
+					DestinationType:       destType,
+					JobsDB:                jobsDB,
+					HTTPPort:              httpPort,
+					Client:                sqlClient,
+					JobRunID:              misc.FastUUID().String(),
+					TaskRunID:             misc.FastUUID().String(),
+					EventTemplateCountMap: testhelper.ModifiedEventsCountMap,
+					UserID:                testhelper.GetUserId(destType),
 				}
-				ts.JobRunID = misc.FastUUID().String()
-				ts.TaskRunID = misc.FastUUID().String()
-				ts.VerifyModifiedEvents(t)
+				if tc.asyncJob {
+					ts2.UserID = ts1.UserID
+					ts2.EventTemplateCountMap = testhelper.DefaultSourcesModifiedEventsCountMap
+				}
+				ts2.VerifyEvents(t)
 			})
 		}
 	})
 
 	t.Run("Validations", func(t *testing.T) {
 		dest := backendconfig.DestinationT{
-			ID: "21Ezdq58khNMj07VJB0VJmxLvgu",
+			ID: destinationID,
 			Config: map[string]interface{}{
 				"host":             host,
 				"database":         database,
@@ -265,7 +303,7 @@ func TestIntegration(t *testing.T) {
 				"accessKeyID":      accessKeyID,
 				"secretAccessKey":  secretAccessKey,
 				"useSSL":           false,
-				"endPoint":         endPoint,
+				"endPoint":         minioEndpoint,
 				"syncFrequency":    "30",
 				"useRudderStorage": false,
 			},
@@ -276,7 +314,7 @@ func TestIntegration(t *testing.T) {
 			},
 			Name:       "mssql-demo",
 			Enabled:    true,
-			RevisionID: "29eeuUb21cuDBeFKPTUA9GaQ9Aq",
+			RevisionID: destinationID,
 		}
 		testhelper.VerifyConfigurationTest(t, dest)
 	})

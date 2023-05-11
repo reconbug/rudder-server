@@ -75,10 +75,10 @@ func TestIntegration(t *testing.T) {
 	sourcesDestinationID := warehouseutils.RandHex()
 	sourcesWriteKey := warehouseutils.RandHex()
 
-	provider := warehouseutils.BQ
+	destType := warehouseutils.BQ
 
-	namespace := testhelper.RandSchema(provider)
-	sourcesNamespace := testhelper.RandSchema(provider)
+	namespace := testhelper.RandSchema(destType)
+	sourcesNamespace := testhelper.RandSchema(destType)
 
 	bqTestCredentials, err := bqHeloer.GetBQTestCredentials()
 	require.NoError(t, err)
@@ -87,6 +87,8 @@ func TestIntegration(t *testing.T) {
 	require.NoError(t, err)
 
 	escapedCredentialsTrimmedStr := strings.Trim(string(escapedCredentials), `"`)
+
+	transformerEndpoint := fmt.Sprintf("http://localhost:%d", transformerPort)
 
 	templateConfigurations := map[string]any{
 		"workspaceID":          workspaceID,
@@ -124,7 +126,7 @@ func TestIntegration(t *testing.T) {
 	t.Setenv("INSTANCE_ID", "1")
 	t.Setenv("ALERT_PROVIDER", "pagerduty")
 	t.Setenv("CONFIG_PATH", "../../../config/config.yaml")
-	t.Setenv("DEST_TRANSFORM_URL", fmt.Sprintf("http://localhost:%d", transformerPort))
+	t.Setenv("DEST_TRANSFORM_URL", transformerEndpoint)
 	t.Setenv("RSERVER_WAREHOUSE_BIGQUERY_MAX_PARALLEL_LOADS", "8")
 	t.Setenv("RSERVER_WAREHOUSE_WAREHOUSE_SYNC_FREQ_IGNORE", "true")
 	t.Setenv("RSERVER_WAREHOUSE_UPLOAD_FREQ_IN_S", "10")
@@ -178,12 +180,12 @@ func TestIntegration(t *testing.T) {
 
 		testcase := []struct {
 			name                                string
-			schema                              string
 			writeKey                            string
+			schema                              string
 			sourceID                            string
 			destinationID                       string
 			messageID                           string
-			eventsMap                           testhelper.EventsCountMap
+			tables                              []string
 			stagingFilesEventsMap               testhelper.EventsCountMap
 			stagingFilesModifiedEventsMap       testhelper.EventsCountMap
 			loadFilesEventsMap                  testhelper.EventsCountMap
@@ -192,15 +194,14 @@ func TestIntegration(t *testing.T) {
 			asyncJob                            bool
 			skipModifiedEvents                  bool
 			prerequisite                        func(t testing.TB)
-			tables                              []string
 			isDedupEnabled                      bool
 			customPartitionsEnabledWorkspaceIDs string
 		}{
 			{
 				name:                          "Merge mode",
+				writeKey:                      writeKey,
 				schema:                        namespace,
 				tables:                        []string{"identifies", "users", "tracks", "product_track", "pages", "screens", "aliases", "groups"},
-				writeKey:                      writeKey,
 				sourceID:                      sourceID,
 				destinationID:                 destinationID,
 				messageID:                     misc.FastUUID().String(),
@@ -223,7 +224,6 @@ func TestIntegration(t *testing.T) {
 				destinationID: sourcesDestinationID,
 				schema:        sourcesNamespace,
 				tables:        []string{"tracks", "google_sheet"},
-				eventsMap:     testhelper.SourcesSendEventsMap(),
 				stagingFilesEventsMap: testhelper.EventsCountMap{
 					"wh_staging_files": 9, // 8 + 1 (merge events because of ID resolution)
 				},
@@ -312,45 +312,82 @@ func TestIntegration(t *testing.T) {
 				t.Setenv("RSERVER_WAREHOUSE_BIGQUERY_IS_DEDUP_ENABLED", strconv.FormatBool(tc.isDedupEnabled))
 				t.Setenv("RSERVER_WAREHOUSE_BIGQUERY_CUSTOM_PARTITIONS_ENABLED_WORKSPACE_IDS", tc.customPartitionsEnabledWorkspaceIDs)
 
-				ts := testhelper.WareHouseTest{
-					Schema:                tc.schema,
+				if tc.prerequisite != nil {
+					tc.prerequisite(t)
+				}
+
+				sqlClient := &client.Client{
+					BQ:   db,
+					Type: client.BQClient,
+				}
+
+				conf := map[string]interface{}{
+					"bucketName":  bqTestCredentials.BucketName,
+					"credentials": bqTestCredentials.Credentials,
+				}
+
+				t.Log("verifying test case 1")
+				ts1 := testhelper.TestConfig{
 					WriteKey:              tc.writeKey,
+					Schema:                tc.schema,
+					Tables:                tc.tables,
 					SourceID:              tc.sourceID,
 					DestinationID:         tc.destinationID,
 					MessageID:             tc.messageID,
-					Tables:                tc.tables,
-					EventsMap:             tc.eventsMap,
 					StagingFilesEventsMap: tc.stagingFilesEventsMap,
 					LoadFilesEventsMap:    tc.loadFilesEventsMap,
 					TableUploadsEventsMap: tc.tableUploadsEventsMap,
-					Prerequisite:          tc.prerequisite,
 					WarehouseEventsMap:    tc.warehouseEventsMap,
 					AsyncJob:              tc.asyncJob,
-					Provider:              provider,
+					Config:                conf,
+					WorkspaceID:           workspaceID,
+					DestinationType:       destType,
 					JobsDB:                jobsDB,
-					TaskRunID:             misc.FastUUID().String(),
+					HTTPPort:              httpPort,
+					Client:                sqlClient,
 					JobRunID:              misc.FastUUID().String(),
-					UserID:                testhelper.GetUserId(provider),
-					Client: &client.Client{
-						BQ:   db,
-						Type: client.BQClient,
-					},
-					HTTPPort:    httpPort,
-					WorkspaceID: workspaceID,
+					TaskRunID:             misc.FastUUID().String(),
+					EventTemplateCountMap: testhelper.DefaultEventsCountMap,
+					UserID:                testhelper.GetUserId(destType),
 				}
-				ts.VerifyEvents(t)
+				if tc.asyncJob {
+					ts1.EventTemplateCountMap = testhelper.DefaultSourcesEventsCountMap
+				}
+				ts1.VerifyEvents(t)
 
 				if tc.skipModifiedEvents {
 					return
 				}
 
-				if !tc.asyncJob {
-					ts.UserID = testhelper.GetUserId(provider)
+				t.Log("verifying test case 2")
+				ts2 := testhelper.TestConfig{
+					WriteKey:              tc.writeKey,
+					Schema:                tc.schema,
+					Tables:                tc.tables,
+					SourceID:              tc.sourceID,
+					DestinationID:         tc.destinationID,
+					MessageID:             tc.messageID,
+					StagingFilesEventsMap: tc.stagingFilesModifiedEventsMap,
+					LoadFilesEventsMap:    tc.loadFilesEventsMap,
+					TableUploadsEventsMap: tc.tableUploadsEventsMap,
+					WarehouseEventsMap:    tc.warehouseEventsMap,
+					AsyncJob:              tc.asyncJob,
+					Config:                conf,
+					WorkspaceID:           workspaceID,
+					DestinationType:       destType,
+					JobsDB:                jobsDB,
+					HTTPPort:              httpPort,
+					Client:                sqlClient,
+					JobRunID:              misc.FastUUID().String(),
+					TaskRunID:             misc.FastUUID().String(),
+					EventTemplateCountMap: testhelper.DefaultEventsCountMap,
+					UserID:                testhelper.GetUserId(destType),
 				}
-				ts.StagingFilesEventsMap = tc.stagingFilesModifiedEventsMap
-				ts.JobRunID = misc.FastUUID().String()
-				ts.TaskRunID = misc.FastUUID().String()
-				ts.VerifyModifiedEvents(t)
+				if tc.asyncJob {
+					ts2.UserID = ts1.UserID
+					ts2.EventTemplateCountMap = testhelper.DefaultSourcesModifiedEventsCountMap
+				}
+				ts2.VerifyEvents(t)
 			})
 		}
 	})
@@ -374,7 +411,7 @@ func TestIntegration(t *testing.T) {
 			},
 			Name:       "bigquery-integration",
 			Enabled:    true,
-			RevisionID: "29eejWUH80lK1abiB766fzv5Iba",
+			RevisionID: destinationID,
 		}
 		testhelper.VerifyConfigurationTest(t, dest)
 	})
@@ -389,8 +426,7 @@ func loadFilesEventsMap() testhelper.EventsCountMap {
 		"pages":         4,
 		"screens":       4,
 		"aliases":       4,
-		"groups":        1,
-		"_groups":       3,
+		"groups":        4,
 	}
 }
 
@@ -403,8 +439,7 @@ func tableUploadsEventsMap() testhelper.EventsCountMap {
 		"pages":         4,
 		"screens":       4,
 		"aliases":       4,
-		"groups":        1,
-		"_groups":       3,
+		"groups":        4,
 	}
 }
 
@@ -424,7 +459,6 @@ func mergeEventsMap() testhelper.EventsCountMap {
 		"screens":       1,
 		"aliases":       1,
 		"groups":        1,
-		"_groups":       1,
 	}
 }
 
@@ -437,8 +471,7 @@ func appendEventsMap() testhelper.EventsCountMap {
 		"pages":         4,
 		"screens":       4,
 		"aliases":       4,
-		"groups":        1,
-		"_groups":       3,
+		"groups":        4,
 	}
 }
 

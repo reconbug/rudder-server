@@ -204,11 +204,9 @@ func TestIntegration(t *testing.T) {
 
 		testCases := []struct {
 			name                  string
-			writeKey              string
 			schema                string
 			sourceID              string
 			destinationID         string
-			eventsMap             testhelper.EventsCountMap
 			stagingFilesEventsMap testhelper.EventsCountMap
 			loadFilesEventsMap    testhelper.EventsCountMap
 			tableUploadsEventsMap testhelper.EventsCountMap
@@ -218,7 +216,6 @@ func TestIntegration(t *testing.T) {
 		}{
 			{
 				name:          "Upload Job",
-				writeKey:      writeKey,
 				schema:        namespace,
 				tables:        []string{"identifies", "users", "tracks", "product_track", "pages", "screens", "aliases", "groups"},
 				sourceID:      sourceID,
@@ -226,12 +223,10 @@ func TestIntegration(t *testing.T) {
 			},
 			{
 				name:                  "Async Job",
-				writeKey:              sourcesWriteKey,
 				schema:                sourcesNamespace,
 				tables:                []string{"tracks", "google_sheet"},
 				sourceID:              sourcesSourceID,
 				destinationID:         sourcesDestinationID,
-				eventsMap:             testhelper.SourcesSendEventsMap(),
 				stagingFilesEventsMap: testhelper.SourcesStagingFilesEventsMap(),
 				loadFilesEventsMap:    testhelper.SourcesLoadFilesEventsMap(),
 				tableUploadsEventsMap: testhelper.SourcesTableUploadsEventsMap(),
@@ -246,20 +241,18 @@ func TestIntegration(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
-				ts := testhelper.WareHouseTest{
+				ts := testhelper.TestConfig{
 					Schema:                tc.schema,
-					WriteKey:              tc.writeKey,
 					SourceID:              tc.sourceID,
 					DestinationID:         tc.destinationID,
 					Tables:                tc.tables,
-					EventsMap:             tc.eventsMap,
 					StagingFilesEventsMap: tc.stagingFilesEventsMap,
 					LoadFilesEventsMap:    tc.loadFilesEventsMap,
 					TableUploadsEventsMap: tc.tableUploadsEventsMap,
 					WarehouseEventsMap:    tc.warehouseEventsMap,
 					AsyncJob:              tc.asyncJob,
 					UserID:                testhelper.GetUserId(provider),
-					Provider:              provider,
+					DestinationType:       provider,
 					JobsDB:                jobsDB,
 					JobRunID:              misc.FastUUID().String(),
 					TaskRunID:             misc.FastUUID().String(),
@@ -277,7 +270,7 @@ func TestIntegration(t *testing.T) {
 				}
 				ts.JobRunID = misc.FastUUID().String()
 				ts.TaskRunID = misc.FastUUID().String()
-				ts.VerifyModifiedEvents(t)
+				ts.VerifyEvents(t)
 			})
 		}
 	})
@@ -307,11 +300,9 @@ func TestIntegration(t *testing.T) {
 
 		testcases := []struct {
 			name                  string
-			writeKey              string
 			schema                string
 			sourceID              string
 			destinationID         string
-			eventsMap             testhelper.EventsCountMap
 			stagingFilesEventsMap testhelper.EventsCountMap
 			loadFilesEventsMap    testhelper.EventsCountMap
 			tableUploadsEventsMap testhelper.EventsCountMap
@@ -321,7 +312,6 @@ func TestIntegration(t *testing.T) {
 		}{
 			{
 				name:          "upload job through ssh tunnelling",
-				writeKey:      tunnelledWriteKey,
 				schema:        tunnelledNamespace,
 				tables:        []string{"identifies", "users", "tracks", "product_track", "pages", "screens", "aliases", "groups"},
 				sourceID:      tunnelledSourceID,
@@ -335,19 +325,17 @@ func TestIntegration(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
-				ts := testhelper.WareHouseTest{
+				ts := testhelper.TestConfig{
 					Schema:                tc.schema,
-					WriteKey:              tc.writeKey,
 					SourceID:              tc.sourceID,
 					DestinationID:         tc.destinationID,
 					Tables:                tc.tables,
-					EventsMap:             tc.eventsMap,
 					StagingFilesEventsMap: tc.stagingFilesEventsMap,
 					LoadFilesEventsMap:    tc.loadFilesEventsMap,
 					TableUploadsEventsMap: tc.tableUploadsEventsMap,
 					WarehouseEventsMap:    tc.warehouseEventsMap,
 					UserID:                testhelper.GetUserId(warehouseutils.POSTGRES),
-					Provider:              warehouseutils.POSTGRES,
+					DestinationType:       warehouseutils.POSTGRES,
 					JobsDB:                jobsDB,
 					JobRunID:              misc.FastUUID().String(),
 					TaskRunID:             misc.FastUUID().String(),
@@ -363,7 +351,7 @@ func TestIntegration(t *testing.T) {
 				ts.UserID = testhelper.GetUserId(warehouseutils.POSTGRES)
 				ts.JobRunID = misc.FastUUID().String()
 				ts.TaskRunID = misc.FastUUID().String()
-				ts.VerifyModifiedEvents(t)
+				ts.VerifyEvents(t)
 			})
 		}
 	})

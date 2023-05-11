@@ -207,7 +207,6 @@ func TestIntegration(t *testing.T) {
 		testCases := []struct {
 			name                string
 			schema              string
-			writeKey            string
 			sourceID            string
 			destinationID       string
 			messageID           string
@@ -217,7 +216,6 @@ func TestIntegration(t *testing.T) {
 		}{
 			{
 				name:                "Merge Mode",
-				writeKey:            writeKey,
 				schema:              namespace,
 				sourceID:            sourceID,
 				destinationID:       destinationID,
@@ -227,7 +225,6 @@ func TestIntegration(t *testing.T) {
 			},
 			{
 				name:                "Append Mode",
-				writeKey:            writeKey,
 				schema:              namespace,
 				sourceID:            sourceID,
 				destinationID:       destinationID,
@@ -237,7 +234,6 @@ func TestIntegration(t *testing.T) {
 			},
 			{
 				name:                "Parquet load files",
-				writeKey:            writeKey,
 				schema:              namespace,
 				sourceID:            sourceID,
 				destinationID:       destinationID,
@@ -254,16 +250,15 @@ func TestIntegration(t *testing.T) {
 				t.Setenv("RSERVER_WAREHOUSE_DELTALAKE_LOAD_TABLE_STRATEGY", tc.loadTableStrategy)
 				t.Setenv("RSERVER_WAREHOUSE_DELTALAKE_USE_PARQUET_LOAD_FILES", strconv.FormatBool(tc.useParquetLoadFiles))
 
-				ts := testhelper.WareHouseTest{
-					Schema:        tc.schema,
-					WriteKey:      tc.writeKey,
-					SourceID:      tc.sourceID,
-					DestinationID: tc.destinationID,
-					JobsDB:        jobsDB,
-					Provider:      provider,
-					UserID:        testhelper.GetUserId(provider),
-					MessageID:     misc.FastUUID().String(),
-					Tables:        []string{"identifies", "users", "tracks", "product_track", "pages", "screens", "aliases", "groups"},
+				ts := testhelper.TestConfig{
+					Schema:          tc.schema,
+					SourceID:        tc.sourceID,
+					DestinationID:   tc.destinationID,
+					JobsDB:          jobsDB,
+					DestinationType: provider,
+					UserID:          testhelper.GetUserId(provider),
+					MessageID:       misc.FastUUID().String(),
+					Tables:          []string{"identifies", "users", "tracks", "product_track", "pages", "screens", "aliases", "groups"},
 					WarehouseEventsMap: testhelper.EventsCountMap{
 						"identifies":    1,
 						"users":         1,
@@ -284,7 +279,7 @@ func TestIntegration(t *testing.T) {
 				ts.VerifyEvents(t)
 
 				ts.WarehouseEventsMap = tc.warehouseEventsMap
-				ts.VerifyModifiedEvents(t)
+				ts.VerifyEvents(t)
 			})
 		}
 	})

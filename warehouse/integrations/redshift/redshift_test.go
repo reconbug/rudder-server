@@ -200,10 +200,8 @@ func TestIntegration(t *testing.T) {
 		testcase := []struct {
 			name                  string
 			schema                string
-			writeKey              string
 			sourceID              string
 			destinationID         string
-			eventsMap             testhelper.EventsCountMap
 			stagingFilesEventsMap testhelper.EventsCountMap
 			loadFilesEventsMap    testhelper.EventsCountMap
 			tableUploadsEventsMap testhelper.EventsCountMap
@@ -215,7 +213,6 @@ func TestIntegration(t *testing.T) {
 				name:          "Upload Job",
 				schema:        namespace,
 				tables:        []string{"identifies", "users", "tracks", "product_track", "pages", "screens", "aliases", "groups"},
-				writeKey:      writeKey,
 				sourceID:      sourceID,
 				destinationID: destinationID,
 			},
@@ -223,10 +220,8 @@ func TestIntegration(t *testing.T) {
 				name:                  "Async Job",
 				schema:                sourcesNamespace,
 				tables:                []string{"tracks", "google_sheet"},
-				writeKey:              sourcesWriteKey,
 				sourceID:              sourcesSourceID,
 				destinationID:         sourcesDestinationID,
-				eventsMap:             testhelper.SourcesSendEventsMap(),
 				stagingFilesEventsMap: testhelper.SourcesStagingFilesEventsMap(),
 				loadFilesEventsMap:    testhelper.SourcesLoadFilesEventsMap(),
 				tableUploadsEventsMap: testhelper.SourcesTableUploadsEventsMap(),
@@ -260,19 +255,17 @@ func TestIntegration(t *testing.T) {
 					}))
 				})
 
-				ts := testhelper.WareHouseTest{
+				ts := testhelper.TestConfig{
 					Schema:                tc.schema,
-					WriteKey:              tc.writeKey,
 					SourceID:              tc.sourceID,
 					DestinationID:         tc.destinationID,
 					Tables:                tc.tables,
-					EventsMap:             tc.eventsMap,
 					StagingFilesEventsMap: tc.stagingFilesEventsMap,
 					LoadFilesEventsMap:    tc.loadFilesEventsMap,
 					TableUploadsEventsMap: tc.tableUploadsEventsMap,
 					WarehouseEventsMap:    tc.warehouseEventsMap,
 					AsyncJob:              tc.asyncJob,
-					Provider:              provider,
+					DestinationType:       provider,
 					JobsDB:                jobsDB,
 					JobRunID:              misc.FastUUID().String(),
 					TaskRunID:             misc.FastUUID().String(),
@@ -291,7 +284,7 @@ func TestIntegration(t *testing.T) {
 				}
 				ts.JobRunID = misc.FastUUID().String()
 				ts.TaskRunID = misc.FastUUID().String()
-				ts.VerifyModifiedEvents(t)
+				ts.VerifyEvents(t)
 			})
 		}
 	})

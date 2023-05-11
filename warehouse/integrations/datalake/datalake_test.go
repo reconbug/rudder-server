@@ -199,7 +199,6 @@ func TestIntegration(t *testing.T) {
 	t.Run("Events flow", func(t *testing.T) {
 		testCases := []struct {
 			name          string
-			writeKey      string
 			sourceID      string
 			destinationID string
 			provider      string
@@ -207,7 +206,6 @@ func TestIntegration(t *testing.T) {
 		}{
 			{
 				name:          "S3Datalake",
-				writeKey:      s3WriteKey,
 				sourceID:      s3SourceID,
 				destinationID: s3DestinationID,
 				provider:      warehouseutils.S3_DATALAKE,
@@ -227,7 +225,6 @@ func TestIntegration(t *testing.T) {
 			},
 			{
 				name:          "GCSDatalake",
-				writeKey:      gcsWriteKey,
 				sourceID:      gcsSourceID,
 				destinationID: gcsDestinationID,
 				provider:      warehouseutils.GCS_DATALAKE,
@@ -241,7 +238,6 @@ func TestIntegration(t *testing.T) {
 			},
 			{
 				name:          "AzureDatalake",
-				writeKey:      azWriteKey,
 				sourceID:      azSourceID,
 				destinationID: azDestinationID,
 				provider:      warehouseutils.AZURE_DATALAKE,
@@ -256,22 +252,24 @@ func TestIntegration(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
-				ts := testhelper.WareHouseTest{
-					WriteKey:      tc.writeKey,
-					SourceID:      tc.sourceID,
-					DestinationID: tc.destinationID,
-					Prerequisite:  tc.prerequisite,
-					Provider:      tc.provider,
-					JobsDB:        jobsDB,
-					UserID:        testhelper.GetUserId(tc.provider),
-					SkipWarehouse: true,
-					HTTPPort:      httpPort,
-					WorkspaceID:   workspaceID,
+				if tc.prerequisite != nil {
+					tc.prerequisite(t)
+				}
+
+				ts := testhelper.TestConfig{
+					SourceID:        tc.sourceID,
+					DestinationID:   tc.destinationID,
+					DestinationType: tc.provider,
+					JobsDB:          jobsDB,
+					UserID:          testhelper.GetUserId(tc.provider),
+					SkipWarehouse:   true,
+					HTTPPort:        httpPort,
+					WorkspaceID:     workspaceID,
 				}
 				ts.VerifyEvents(t)
 
 				ts.UserID = testhelper.GetUserId(tc.provider)
-				ts.VerifyModifiedEvents(t)
+				ts.VerifyEvents(t)
 			})
 		}
 	})

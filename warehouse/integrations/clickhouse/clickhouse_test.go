@@ -241,14 +241,13 @@ func TestIntegration(t *testing.T) {
 			tc := tc
 
 			t.Run(tc.name, func(t *testing.T) {
-				ts := testhelper.WareHouseTest{
+				ts := testhelper.TestConfig{
 					Schema:             database,
-					WriteKey:           tc.writeKey,
 					SourceID:           tc.sourceID,
 					DestinationID:      tc.destinationID,
 					WarehouseEventsMap: tc.warehouseEvents,
 					Tables:             tables,
-					Provider:           provider,
+					DestinationType:    provider,
 					JobsDB:             jobsDB,
 					UserID:             testhelper.GetUserId(provider),
 					Client: &client.Client{
@@ -266,7 +265,7 @@ func TestIntegration(t *testing.T) {
 
 				ts.UserID = testhelper.GetUserId(provider)
 				ts.WarehouseEventsMap = tc.warehouseModifiedEvents
-				ts.VerifyModifiedEvents(t)
+				ts.VerifyEvents(t)
 			})
 		}
 	})
