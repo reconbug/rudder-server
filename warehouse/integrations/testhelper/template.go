@@ -34,6 +34,8 @@ const (
 	googleSheetTrackTemplate         = `{"data": {"id": "{{.msgID}}", "event": "google_sheet", "channel": "sources", "sent_at": "2023-05-10T19:42:38.957Z", "user_id": "{{.userID}}", "record_id": "{{.recordID}}", "timestamp": "2023-05-10T19:42:38.429Z", "context_ip": "[::1]", "event_text": "google_sheet", "received_at": "2023-05-10T19:42:38.430Z", "context_source_id": "{{.sourceID}}", "context_request_ip": "[::1]", "original_timestamp": "2023-05-10T19:42:38.957Z", "context_source_type": "singer-google-sheets", "context_destination_id": "{{.destID}}", "context_sources_job_id": "{{.jobRunID}}", "context_sources_task_id": "Sheet1", "context_sources_version": "v2.1.1", "context_destination_type": "{{.destType}}", "context_sources_batch_id": "e84d84e1-be39-41cb-85e6-66874b6a4730", "context_sources_job_run_id": "{{.jobRunID}}", "context_sources_task_run_id": "{{.taskRunID}}"}, "userId": "", "metadata": {"table": "tracks", "columns": {"id": "string", "event": "string", "channel": "string", "sent_at": "datetime", "user_id": "string", "uuid_ts": "datetime", "record_id": "string", "timestamp": "datetime", "context_ip": "string", "event_text": "string", "received_at": "datetime", "context_source_id": "string", "context_request_ip": "string", "original_timestamp": "datetime", "context_source_type": "string", "context_destination_id": "string", "context_sources_job_id": "string", "context_sources_task_id": "string", "context_sources_version": "string", "context_destination_type": "string", "context_sources_batch_id": "string", "context_sources_job_run_id": "string", "context_sources_task_run_id": "string", "uuid_ts": "datetime", "loaded_at": "datetime"}, "receivedAt": "2023-05-11T01:12:38.430+05:30"}}`
 	googleSheetTrackModifiedTemplate = `{"data": {"id": "{{.msgID}}", "event": "google_sheet", "channel": "sources", "sent_at": "2023-05-10T19:42:38.958Z", "user_id": "{{.userID}}", "record_id": "{{.recordID}}", "timestamp": "2023-05-10T19:42:38.519Z", "context_as": "non escaped column", "context_ip": "[::1]", "event_text": "google_sheet", "received_at": "2023-05-10T19:42:38.520Z", "context_between": "non escaped column", "context_source_id": "{{.sourceID}}", "context_request_ip": "[::1]", "original_timestamp": "2023-05-10T19:42:38.958Z", "context_source_type": "singer-google-sheets", "context_destination_id": "{{.destID}}", "context_sources_job_id": "{{.jobRunID}}", "context_sources_task_id": "Sheet1", "context_sources_version": "v2.1.1", "context_destination_type": "{{.destType}}", "context_sources_batch_id": "e84d84e1-be39-41cb-85e6-66874b6a4730", "context_sources_job_run_id": "{{.jobRunID}}", "context_sources_task_run_id": "{{.taskRunID}}"}, "userId": "", "metadata": {"table": "tracks", "columns": {"id": "string", "event": "string", "channel": "string", "sent_at": "datetime", "user_id": "string", "uuid_ts": "datetime", "record_id": "string", "timestamp": "datetime", "context_as": "string", "context_ip": "string", "event_text": "string", "received_at": "datetime", "context_between": "string", "context_source_id": "string", "context_request_ip": "string", "original_timestamp": "datetime", "context_source_type": "string", "context_destination_id": "string", "context_sources_job_id": "string", "context_sources_task_id": "string", "context_sources_version": "string", "context_destination_type": "string", "context_sources_batch_id": "string", "context_sources_job_run_id": "string", "context_sources_task_run_id": "string", "uuid_ts": "datetime", "loaded_at": "datetime"}, "receivedAt": "2023-05-11T01:12:38.520+05:30"}}`
 	googleSheetTrackReservedTemplate = `{"data": {"as": "non escaped column", "id": "{{.msgID}}", "event": "google_sheet", "channel": "sources", "sent_at": "2023-05-10T19:42:56.270Z", "user_id": "{{.userID}}", "record_id": "{{.recordID}}", "timestamp": "2023-05-10T19:42:54.701Z", "context_as": "non escaped column", "context_ip": "[::1]", "event_text": "google_sheet", "received_at": "2023-05-10T19:42:54.702Z", "context_between": "non escaped column", "context_source_id": "{{.sourceID}}", "context_request_ip": "[::1]", "original_timestamp": "2023-05-10T19:42:56.270Z", "context_source_type": "singer-google-sheets", "context_destination_id": "{{.destID}}", "context_sources_job_id": "2DkCpUr0xfiGBPJxIwqyqfyHdq4", "context_sources_task_id": "Sheet1", "context_sources_version": "v2.1.1", "context_destination_type": "{{.destType}}", "context_sources_batch_id": "e84d84e1-be39-41cb-85e6-66874b6a4730", "context_sources_job_run_id": "{{.jobRunID}}", "context_sources_task_run_id": "{{.taskRunID}}"}, "userId": "", "metadata": {"table": "tracks", "columns": {"id": "string", "event": "string", "channel": "string", "sent_at": "datetime", "user_id": "string", "uuid_ts": "datetime", "record_id": "string", "timestamp": "datetime", "context_as": "string", "context_ip": "string", "event_text": "string", "received_at": "datetime", "context_between": "string", "context_source_id": "string", "context_request_ip": "string", "original_timestamp": "datetime", "context_source_type": "string", "context_destination_id": "string", "context_sources_job_id": "string", "context_sources_task_id": "string", "context_sources_version": "string", "context_destination_type": "string", "context_sources_batch_id": "string", "context_sources_job_run_id": "string", "context_sources_task_run_id": "string", "uuid_ts": "datetime", "loaded_at": "datetime"}, "receivedAt": "2023-05-11T01:12:54.702+05:30"}}`
+
+	idResolutionTemplate = `{"data": {"MERGE_PROPERTY_1_TYPE": "user_id", "MERGE_PROPERTY_2_TYPE": "user_id", "MERGE_PROPERTY_1_VALUE": "{{.userID}}", "MERGE_PROPERTY_2_VALUE": "name@surname.com"}, "userId": "", "metadata": {"table": "RUDDER_IDENTITY_MERGE_RULES", "columns": {"MERGE_PROPERTY_1_TYPE": "string", "MERGE_PROPERTY_2_TYPE": "string", "MERGE_PROPERTY_1_VALUE": "string", "MERGE_PROPERTY_2_VALUE": "string"}, "receivedAt": "2023-05-11T11:48:06.177+05:30", "isMergeRule": true, "mergePropOne": "{{.userID}}", "mergePropTwo": "name@surname.com"}}`
 )
 
 var templatesMap = map[string]string{
@@ -70,56 +72,90 @@ var templatesMap = map[string]string{
 	"googleSheetTrackTemplate":         googleSheetTrackTemplate,
 	"googleSheetTrackModifiedTemplate": googleSheetTrackModifiedTemplate,
 	"googleSheetTrackReservedTemplate": googleSheetTrackReservedTemplate,
+
+	"idResolutionTemplate": idResolutionTemplate,
 }
 
-var DefaultEventsCountMap = EventsCountMap{
-	"identifiesTemplate":           3,
-	"usersTemplate":                3,
-	"tracksTemplate":               3,
-	"productTrackTemplate":         3,
-	"pagesTemplate":                3,
-	"screensTemplate":              3,
-	"aliasesTemplate":              3,
-	"groupsTemplate":               3,
-	"identifiesReservedTemplate":   1,
-	"usersReservedTemplate":        1,
-	"tracksReservedTemplate":       1,
-	"productTrackReservedTemplate": 1,
-	"pagesReservedTemplate":        1,
-	"screensReservedTemplate":      1,
-	"aliasesReservedTemplate":      1,
-	"groupsReservedTemplate":       1,
+func DefaultEventsCountMap() EventsCountMap {
+	return EventsCountMap{
+		"identifiesTemplate":           3,
+		"usersTemplate":                3,
+		"tracksTemplate":               3,
+		"productTrackTemplate":         3,
+		"pagesTemplate":                3,
+		"screensTemplate":              3,
+		"aliasesTemplate":              3,
+		"groupsTemplate":               3,
+		"identifiesReservedTemplate":   1,
+		"usersReservedTemplate":        1,
+		"tracksReservedTemplate":       1,
+		"productTrackReservedTemplate": 1,
+		"pagesReservedTemplate":        1,
+		"screensReservedTemplate":      1,
+		"aliasesReservedTemplate":      1,
+		"groupsReservedTemplate":       1,
+	}
 }
 
-var ModifiedEventsCountMap = EventsCountMap{
-	"identifiesModifiedTemplate":   3,
-	"usersModifiedTemplate":        3,
-	"tracksModifiedTemplate":       3,
-	"productTrackModifiedTemplate": 3,
-	"pagesModifiedTemplate":        3,
-	"screensModifiedTemplate":      3,
-	"aliasesModifiedTemplate":      3,
-	"groupsModifiedTemplate":       3,
-	"identifiesReservedTemplate":   1,
-	"usersReservedTemplate":        1,
-	"tracksReservedTemplate":       1,
-	"productTrackReservedTemplate": 1,
-	"pagesReservedTemplate":        1,
-	"screensReservedTemplate":      1,
-	"aliasesReservedTemplate":      1,
-	"groupsReservedTemplate":       1,
+func DefaultEventsCountMapWithIdResolution() EventsCountMap {
+	def := DefaultEventsCountMap()
+	def["idResolutionTemplate"] = 2
+	return def
 }
 
-var DefaultSourcesEventsCountMap = EventsCountMap{
-	"googleSheetTemplate":              3,
-	"googleSheetTrackTemplate":         3,
-	"googleSheetReservedTemplate":      1,
-	"googleSheetTrackReservedTemplate": 1,
+func ModifiedEventsCountMap() EventsCountMap {
+	return EventsCountMap{
+		"identifiesModifiedTemplate":   3,
+		"usersModifiedTemplate":        3,
+		"tracksModifiedTemplate":       3,
+		"productTrackModifiedTemplate": 3,
+		"pagesModifiedTemplate":        3,
+		"screensModifiedTemplate":      3,
+		"aliasesModifiedTemplate":      3,
+		"groupsModifiedTemplate":       3,
+		"identifiesReservedTemplate":   1,
+		"usersReservedTemplate":        1,
+		"tracksReservedTemplate":       1,
+		"productTrackReservedTemplate": 1,
+		"pagesReservedTemplate":        1,
+		"screensReservedTemplate":      1,
+		"aliasesReservedTemplate":      1,
+		"groupsReservedTemplate":       1,
+	}
 }
 
-var DefaultSourcesModifiedEventsCountMap = EventsCountMap{
-	"googleSheetModifiedTemplate":      3,
-	"googleSheetTrackModifiedTemplate": 3,
-	"googleSheetReservedTemplate":      1,
-	"googleSheetTrackReservedTemplate": 1,
+func ModifiedEventsCountMapWithIdResolution() EventsCountMap {
+	def := ModifiedEventsCountMap()
+	def["idResolutionTemplate"] = 2
+	return def
+}
+
+func DefaultSourcesEventsCountMap() EventsCountMap {
+	return EventsCountMap{
+		"googleSheetTemplate":              3,
+		"googleSheetTrackTemplate":         3,
+		"googleSheetReservedTemplate":      1,
+		"googleSheetTrackReservedTemplate": 1,
+	}
+}
+
+func DefaultSourcesEventsCountMapWithIDResolution() EventsCountMap {
+	def := DefaultSourcesEventsCountMap()
+	def["idResolutionTemplate"] = 1
+	return def
+}
+
+func DefaultSourcesModifiedEventsCountMap() EventsCountMap {
+	return EventsCountMap{
+		"googleSheetModifiedTemplate":      3,
+		"googleSheetTrackModifiedTemplate": 3,
+		"googleSheetReservedTemplate":      1,
+		"googleSheetTrackReservedTemplate": 1,
+	}
+}
+
+func DefaultSourcesModifiedEventsCountMapWithIDResolution() EventsCountMap {
+	def := DefaultSourcesModifiedEventsCountMap()
+	def["idResolutionTemplate"] = 1
+	return def
 }

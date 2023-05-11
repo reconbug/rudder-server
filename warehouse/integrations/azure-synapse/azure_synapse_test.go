@@ -215,7 +215,7 @@ func TestIntegration(t *testing.T) {
 					Client:                sqlClient,
 					JobRunID:              misc.FastUUID().String(),
 					TaskRunID:             misc.FastUUID().String(),
-					EventTemplateCountMap: testhelper.DefaultEventsCountMap,
+					EventTemplateCountMap: testhelper.DefaultEventsCountMap(),
 					UserID:                testhelper.GetUserId(destType),
 				}
 				ts1.VerifyEvents(t)
@@ -235,7 +235,7 @@ func TestIntegration(t *testing.T) {
 					Client:                sqlClient,
 					JobRunID:              misc.FastUUID().String(),
 					TaskRunID:             misc.FastUUID().String(),
-					EventTemplateCountMap: testhelper.ModifiedEventsCountMap,
+					EventTemplateCountMap: testhelper.ModifiedEventsCountMap(),
 					UserID:                testhelper.GetUserId(destType),
 				}
 				ts2.VerifyEvents(t)

@@ -285,7 +285,7 @@
             "accessKeyID": "{{.rbacAccessKeyID}}",
             "accessKey": "{{.rbacAccessKey}}",
             "namespace": "{{.rbacNamespace}}",
-            "prefix": "snowflake-rbac-prefix",
+            "prefix": "snowflake-prefix",
             "syncFrequency": "30",
             "enableSSE": false,
             "useRudderStorage": false

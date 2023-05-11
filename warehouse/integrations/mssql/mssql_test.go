@@ -247,11 +247,11 @@ func TestIntegration(t *testing.T) {
 					Client:                sqlClient,
 					JobRunID:              misc.FastUUID().String(),
 					TaskRunID:             misc.FastUUID().String(),
-					EventTemplateCountMap: testhelper.DefaultEventsCountMap,
+					EventTemplateCountMap: testhelper.DefaultEventsCountMap(),
 					UserID:                testhelper.GetUserId(destType),
 				}
 				if tc.asyncJob {
-					ts1.EventTemplateCountMap = testhelper.DefaultSourcesEventsCountMap
+					ts1.EventTemplateCountMap = testhelper.DefaultSourcesEventsCountMap()
 				}
 				ts1.VerifyEvents(t)
 
@@ -262,11 +262,11 @@ func TestIntegration(t *testing.T) {
 					Tables:                tc.tables,
 					SourceID:              tc.sourceID,
 					DestinationID:         tc.destinationID,
-					AsyncJob:              tc.asyncJob,
 					StagingFilesEventsMap: tc.stagingFilesEventsMap,
 					LoadFilesEventsMap:    tc.loadFilesEventsMap,
 					TableUploadsEventsMap: tc.tableUploadsEventsMap,
 					WarehouseEventsMap:    tc.warehouseEventsMap,
+					AsyncJob:              tc.asyncJob,
 					Config:                conf,
 					WorkspaceID:           workspaceID,
 					DestinationType:       destType,
@@ -275,12 +275,12 @@ func TestIntegration(t *testing.T) {
 					Client:                sqlClient,
 					JobRunID:              misc.FastUUID().String(),
 					TaskRunID:             misc.FastUUID().String(),
-					EventTemplateCountMap: testhelper.ModifiedEventsCountMap,
+					EventTemplateCountMap: testhelper.ModifiedEventsCountMap(),
 					UserID:                testhelper.GetUserId(destType),
 				}
 				if tc.asyncJob {
 					ts2.UserID = ts1.UserID
-					ts2.EventTemplateCountMap = testhelper.DefaultSourcesModifiedEventsCountMap
+					ts2.EventTemplateCountMap = testhelper.DefaultSourcesModifiedEventsCountMap()
 				}
 				ts2.VerifyEvents(t)
 			})

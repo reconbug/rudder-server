@@ -338,7 +338,6 @@ func TestIntegration(t *testing.T) {
 					LoadFilesEventsMap:    tc.loadFilesEventsMap,
 					TableUploadsEventsMap: tc.tableUploadsEventsMap,
 					WarehouseEventsMap:    tc.warehouseEventsMap,
-					AsyncJob:              tc.asyncJob,
 					Config:                conf,
 					WorkspaceID:           workspaceID,
 					DestinationType:       destType,
@@ -347,11 +346,11 @@ func TestIntegration(t *testing.T) {
 					Client:                sqlClient,
 					JobRunID:              misc.FastUUID().String(),
 					TaskRunID:             misc.FastUUID().String(),
-					EventTemplateCountMap: testhelper.DefaultEventsCountMap,
+					EventTemplateCountMap: testhelper.DefaultEventsCountMap(),
 					UserID:                testhelper.GetUserId(destType),
 				}
 				if tc.asyncJob {
-					ts1.EventTemplateCountMap = testhelper.DefaultSourcesEventsCountMap
+					ts1.EventTemplateCountMap = testhelper.DefaultSourcesEventsCountMap()
 				}
 				ts1.VerifyEvents(t)
 
@@ -380,12 +379,12 @@ func TestIntegration(t *testing.T) {
 					Client:                sqlClient,
 					JobRunID:              misc.FastUUID().String(),
 					TaskRunID:             misc.FastUUID().String(),
-					EventTemplateCountMap: testhelper.DefaultEventsCountMap,
+					EventTemplateCountMap: testhelper.ModifiedEventsCountMap(),
 					UserID:                testhelper.GetUserId(destType),
 				}
 				if tc.asyncJob {
 					ts2.UserID = ts1.UserID
-					ts2.EventTemplateCountMap = testhelper.DefaultSourcesModifiedEventsCountMap
+					ts2.EventTemplateCountMap = testhelper.DefaultSourcesModifiedEventsCountMap()
 				}
 				ts2.VerifyEvents(t)
 			})
@@ -415,6 +414,14 @@ func TestIntegration(t *testing.T) {
 		}
 		testhelper.VerifyConfigurationTest(t, dest)
 	})
+}
+
+func makeUpperCase(eventMap testhelper.EventsCountMap) testhelper.EventsCountMap {
+	newEventMap := make(testhelper.EventsCountMap)
+	for k, v := range eventMap {
+		newEventMap[strings.ToUpper(k)] = v
+	}
+	return newEventMap
 }
 
 func loadFilesEventsMap() testhelper.EventsCountMap {
